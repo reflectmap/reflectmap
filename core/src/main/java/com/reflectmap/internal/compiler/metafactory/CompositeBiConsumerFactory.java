@@ -7,8 +7,26 @@ import java.util.Queue;
 import java.util.function.BiConsumer;
 
 public final class CompositeBiConsumerFactory {
-
     private CompositeBiConsumerFactory() {}
+
+    private static final String     NAME = "accept";
+    private static final MethodType MT = MethodType.methodType(void.class, Object.class, Object.class);
+
+    // One cached MethodHandle for our private compose(src, dst) method.
+    private static final MethodHandle COMPOSE_HANDLE = MethodHandleFactory.findStatic(
+                    CompositeBiConsumerFactory.class,
+                    "compose",
+                    MethodType.methodType(void.class, BiConsumer.class, BiConsumer.class, Object.class, Object.class)
+    );
+
+    /**
+     * Only accessed reflectively via COMPOSE_HANDLE.
+     */
+    @SuppressWarnings("unused")
+    private static void compose(BiConsumer<Object, Object> a, BiConsumer<Object, Object> b, Object src, Object dst) {
+        a.accept(src, dst);
+        b.accept(src, dst);
+    }
 
     /**
      * Iteratively compiles a queue of BiConsumers into one composite BiConsumer by pairwise reduction.
@@ -23,13 +41,13 @@ public final class CompositeBiConsumerFactory {
      * @return a composite BiConsumer that sequentially applies each consumer
      * @throws IllegalArgumentException if the queue or any of its elements is null
      */
-    public static <T, U> BiConsumer<T, U> of(Queue<BiConsumer<T, U>> consumers) throws Throwable {
+    public static BiConsumer<Object, Object> of(Queue<BiConsumer<Object, Object>> consumers) throws Throwable {
         // Perform pairwise reduction, fusing consumers to the left.
         while (consumers.size() > 1) {
             int size = consumers.size();
             for (int i = 0; i < size / 2; i++) {
-                BiConsumer<T, U> a = consumers.poll();
-                BiConsumer<T, U> b = consumers.poll();
+                BiConsumer<Object, Object> a = consumers.poll();
+                BiConsumer<Object, Object> b = consumers.poll();
                 consumers.offer(of(a, b));
             }
 
@@ -43,30 +61,12 @@ public final class CompositeBiConsumerFactory {
         return consumers.poll();
     }
 
-    public static <T, U> BiConsumer<T, U> of(BiConsumer<T, U> a, BiConsumer<T, U> b) throws Throwable {
-        MethodHandle handle = MethodHandles.insertArguments(CompositeConsumer.HANDLE, 0, a, b);
-        return InvokedBiConsumerFactory.of(handle);
+    /**
+     * Fuse two BiConsumer<Object, Object> into one that runs them in sequence.
+     */
+    @SuppressWarnings("unchecked")
+    public static BiConsumer<Object, Object> of(BiConsumer<Object, Object> a, BiConsumer<Object, Object> b) throws Throwable {
+        MethodHandle handle = MethodHandles.insertArguments(COMPOSE_HANDLE, 0, a, b);
+        return LambdaFactory.create(BiConsumer.class, NAME, MT, handle);
     }
-
-    private static final class CompositeConsumer {
-        private CompositeConsumer() {}
-
-        static final MethodHandle HANDLE;
-        static {
-            Class<?> memberClass = CompositeConsumer.class;
-            String methodName = "accept";
-            MethodType consumerType = MethodType.methodType(void.class, BiConsumer.class, BiConsumer.class, Object.class, Object.class);
-            HANDLE = MethodHandleFactory.of(memberClass, methodName, consumerType);
-        }
-
-        /**
-         * Compose two BiConsumers to be executed sequentially.
-         */
-        @SuppressWarnings("unused")
-        public static void accept(BiConsumer<Object, Object> a, BiConsumer<Object, Object> b, Object src, Object dst) {
-            a.accept(src, dst);
-            b.accept(src, dst);
-        }
-    }
-
 }

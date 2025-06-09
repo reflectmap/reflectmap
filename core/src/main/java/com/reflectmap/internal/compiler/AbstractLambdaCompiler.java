@@ -37,7 +37,7 @@ public abstract class AbstractLambdaCompiler implements Compiler {
 
     protected MethodHandle createGetterHandle(Class<?> srcType, String srcFieldName) throws NoSuchFieldException, IllegalAccessException {
         Field srcField = srcType.getDeclaredField(srcFieldName);
-        return MethodHandleFactory.getter(srcType, srcField);
+        return MethodHandleFactory.findGetter(srcType, srcField);
     }
 
     protected MethodHandle createGetterHandle(Class<?> srcType, String... srcFieldNames) throws IllegalAccessException {
@@ -70,7 +70,7 @@ public abstract class AbstractLambdaCompiler implements Compiler {
     }
 
     protected MethodHandle createSetterHandle(Class<?> dstType, Field dstField) throws NoSuchFieldException, IllegalAccessException {
-        return MethodHandleFactory.setter(dstType, dstField);
+        return MethodHandleFactory.findSetter(dstType, dstField);
     }
 
     protected MethodHandle createSetterHandle(Class<?> dstType, String dstFieldName) throws NoSuchFieldException, IllegalAccessException {
