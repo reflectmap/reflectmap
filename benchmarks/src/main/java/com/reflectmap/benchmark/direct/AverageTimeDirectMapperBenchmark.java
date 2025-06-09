@@ -1,5 +1,6 @@
 package com.reflectmap.benchmark.direct;
 
+import com.reflectmap.benchmark.AbstractBenchmark;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -9,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-public class AverageTimeDirectMapperBenchmark extends AbstractDirectMapperBenchmark {
+public class AverageTimeDirectMapperBenchmark extends AbstractBenchmark {
 
     @Benchmark
     public void map() {
